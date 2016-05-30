@@ -1,8 +1,3 @@
-from bs4 import BeautifulSoup
-from pprint import pprint as pprint
-from collections import namedtuple
-import requests
-import os
 from tkinter import *
 
 
@@ -26,13 +21,14 @@ class Client:
 
         self.root.mainloop()
 
-    def send_message(self, event: Event):
+    def send_message(self, e: Event):
         message = self.message_text.get("1.0", 'end-1c')
-        self.chat_text.config(state=NORMAL)
-        self.chat_text.insert(INSERT, message)
-        self.chat_text.config(state=DISABLED)
+        if len(message) > 0:
+            self.chat_text.config(state=NORMAL)
+            self.chat_text.insert(END, message)
+            self.chat_text.yview_scroll(1, "units")
+            self.chat_text.config(state=DISABLED)
         self.message_text.delete('1.0', END)
 
-
-Client()
-
+if __name__ == '__main__':
+    Client()
