@@ -1,8 +1,14 @@
-## Chat Program
+![demo](http://i.imgur.com/PgBVzim.gif)
 
+## Chat Program
 An extremely simple chat program connecting directly by IP.
 
 #### Run instructions
 
-Run main.pyw, if you intend to be the host you just click host and have port 5000
-forwarded,
+Run main.pyw.
+
+### Notes
+
+This will work through local addresses without any issue, but for private
+ip addresses, port 5000 will have to be forwarded through some method 
+(traditional forwarding, DMZ Host your IP address, etc).
