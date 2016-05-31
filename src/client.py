@@ -30,6 +30,7 @@ class Client:
         self.chat_text.config(state=DISABLED)
         self.chat_text.pack()
         self.message_text.pack()
+        self.message_text.focus()
 
     def _init_event_listeners(self):
         self.message_text.bind("<Return>", self._send_message)
