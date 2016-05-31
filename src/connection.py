@@ -1,16 +1,17 @@
-
+from threading import Thread
 from tkinter import *
 from tkinter import messagebox
 import socket
 
 
-class Login:
+class Connection:
 
     def __init__(self):
         self.root = Tk()
         self.connection_type = str
-        self.connection_port = 5000
+        self.port = 5000
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection_socket = socket.socket
         self.is_set = False
 
         # First initializations
@@ -41,8 +42,8 @@ class Login:
         self.server_button.grid(row=1, column=0)
 
     def _init_event_listeners(self):
-        self.connect_button.bind("<Button-1>", self.connect)
-        self.server_button.bind("<Button-1>", self.host)
+        self.connect_button.bind("<Button-1>", lambda e: Thread(target=self.connect, args=(e,)).start())
+        self.server_button.bind("<Button-1>", lambda e: Thread(target=self.host, args=(e,)).start())
 
     def _close(self):
         """ Closes the window.
@@ -53,23 +54,36 @@ class Login:
 
         self.root.after(200, self.root.destroy)
 
+    def establish_connection(self):
+        if self.connection_type == "client":
+            self.connection_socket = self.socket
+
+        elif self.connection_type == "server":
+            self.connection_socket, address = self.socket.accept()
+
+        self.is_set = True
+        self._close()
+
     def host(self, e: Event):
         connect_host = self.ip_text.get("1.0", 'end-1c').strip()
 
-        self.socket.bind((connect_host, self.connection_port))
-        self.connection_type = "server"
-        self.socket.listen(1)
-        self.is_set = True
-        self._close()
+        try:
+            self.socket.bind((connect_host, self.port))
+            self.connection_type = "server"
+            self.socket.listen(1)
+            Thread(target=self.establish_connection).start()
+
+        except OSError as e:
+            if e.errno == 10048:
+                messagebox.showerror("Client error", "You already have a host client open.")
 
     def connect(self, e: Event):
         connect_host = self.ip_text.get("1.0", 'end-1c').strip()
 
         try:
-            self.socket.connect((connect_host, self.connection_port))
+            self.socket.connect((connect_host, self.port))
             self.connection_type = "client"
-            self.is_set = True
-            self._close()
+            Thread(target=self.establish_connection).start()
 
         except WindowsError as e:
             if e.errno == 10061:
@@ -77,4 +91,4 @@ class Login:
 
 
 if __name__ == '__main__':
-    Login()
+    Connection()

@@ -1,17 +1,18 @@
-import socket
 import threading
-from login import Login
+from connection import Connection
 from time import sleep
+from tkinter import messagebox
 from tkinter import *
 
 
 class Client:
 
-    def __init__(self, login: Login):
+    TEXTBOX_CHARACTER_LENGTH = 50
+
+    def __init__(self, connection: Connection):
         self.root = Tk()
-        self.socket = login.socket
-        self.connection_type = login.connection_type
-        self.root.wm_title(self.connection_type)
+        self.connection_socket = connection.connection_socket
+        self.root.wm_title(connection.connection_type)
 
         # Frame
         self.frame = Frame(self.root, height=200, width=200)
@@ -23,43 +24,50 @@ class Client:
 
         # Message window
         self.message_text = Text(height=1, width=50)
-        self.message_text.bind("<Return>", self.send_message)
+        self.message_text.bind("<Return>", self._send_message)
         self.message_text.pack()
 
         # Chat thread
-        self.chat = threading.Thread(target=self.message_loop)
+        self.chat = threading.Thread(target=self._receive_message_loop)
         self.chat.daemon = True
         self.chat.start()
 
-        self.root.after(200, self._get_connection())
         self.root.mainloop()
-
-    def _get_connection(self):
-        if self.connection_type == "server":
-            self.connection, address = self.socket.accept()
-        else:
-            self.connection = self.socket
 
     def _clear_message_text(self):
         self.message_text.delete('1.0', END)
 
-    def message_loop(self):
+    def _receive_message_loop(self):
+        """ Continually read and add messages to the chat. """
+
         while True:
-            message = self.connection.recv(1024)
-            if len(message) > 0:
-                self.add_message_to_chat(message)
-            sleep(0.2)
+            try:
+                message = self.connection_socket.recv(4096)
+                if len(message) > 0:
+                    self.add_message_to_chat(message.decode('utf-8'))
+                sleep(0.2)
 
-    def add_message_to_chat(self, message):
-        self.chat_text.config(state=NORMAL)
-        self.chat_text.insert(END, message)
-        self.chat_text.yview_scroll(1, "units")
-        self.chat_text.config(state=DISABLED)
+            except ConnectionResetError:
+                # messagebox.showerror("Client dropped", "The other person has dropped from the connection.")
+                self.root.destroy()
 
-    def send_message(self, e: Event):
+    def _send_message(self, e: Event):
+        """ Sends the message over the socket and also adds it to the chatbox. """
+
         message = self.message_text.get("1.0", 'end-1c')
 
         if len(message) > 0:
-            self.add_message_to_chat(message)
+            self.add_message_to_chat('you - ' + message)
             self._clear_message_text()
-            self.connection.send(bytes(message, 'utf-8'))
+            self.connection_socket.send(bytes('them - ' + message, 'utf-8'))
+
+    def add_message_to_chat(self, message: str):
+        """ Adds a message to the chat and scrolls down. """
+
+        message = message.replace('\n', "")
+        scroll_length = (len(message) // Client.TEXTBOX_CHARACTER_LENGTH) + 1
+        self.chat_text.config(state=NORMAL)
+        self.chat_text.insert(END, message + '\n')
+        self.chat_text.yview_scroll(scroll_length, "units")
+        self.chat_text.config(state=DISABLED)
+
