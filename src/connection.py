@@ -8,20 +8,21 @@ class Connection:
 
     def __init__(self):
         self.root = Tk()
+        self.root.wm_title("connection")
         self.connection_type = str
         self.port = 5000
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection_socket = socket.socket
         self.is_set = False
 
-        # First initializations
+        # Widgets
         self.frame = Frame(self.root, height=80, width=30)
-        self.label = Label(self.frame, text="Ip address: ")
+        self.label = Label(self.frame, text="IP address: ")
         self.ip_text = Text(self.frame, height=1, width=30)
         self.connect_button = Button(self.frame, text="Connect")
         self.server_button = Button(self.frame, text="Host")
 
-        # Detail setters
+        # Details & Initializations
         self._init_gui_details()
         self._init_event_listeners()
 
@@ -55,20 +56,23 @@ class Connection:
         self.root.after(200, self.root.destroy)
 
     def establish_connection(self):
+        self.frame.destroy()
+        label = Label(text="Connecting ..." if self.connection_type == "client" else "Waiting for clients ...")
+        label.grid(column=0, row=0)
+        label.pack()
+
         if self.connection_type == "client":
             self.connection_socket = self.socket
 
         elif self.connection_type == "server":
-            self.connection_socket, address = self.socket.accept()
+            (self.connection_socket, address) = self.socket.accept()
 
         self.is_set = True
         self._close()
 
     def host(self, e: Event):
-        connect_host = self.ip_text.get("1.0", 'end-1c').strip()
-
         try:
-            self.socket.bind((connect_host, self.port))
+            self.socket.bind(("", self.port))
             self.connection_type = "server"
             self.socket.listen(1)
             Thread(target=self.establish_connection).start()
@@ -88,7 +92,3 @@ class Connection:
         except WindowsError as e:
             if e.errno == 10061:
                 messagebox.showerror("Server error", "IP Address is not accepting connections.")
-
-
-if __name__ == '__main__':
-    Connection()
